@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Just Do It Task Manager</title>
+  <style>
+    /* === Global Reset === */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    /* === Variables === */
+    :root {
+      --black: #000;
+      --white: #fff;
+      --pink: #ff69b4;
+      --gray: #222;
+      --pastel-pink: #ffcce5;
+    }
+
+    /* === Body === */
+    body {
+      background-color: var(--black);
+      color: var(--white);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    /* === Header (3D but no rotation) === */
+    h1 {
+      font-size: clamp(2.6rem, 7vw, 3.4rem);
+      font-weight: 1000;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--white);
+      margin: 0 0 25px 0;
+      text-align: center;
+      white-space: nowrap;
+      text-shadow:
+        2px 2px 0 var(--pink),
+        3px 3px 0 var(--pink),
+        4px 4px 0 var(--pink),
+        5px 5px 0 var(--pink),
+        6px 6px 0 var(--pink),
+        7px 7px 0 var(--pink),
+        8px 8px 0 var(--pink),
+        9px 9px 12px rgba(255,105,180,0.8);
+    }
+
+    /* === Task Container === */
+    .container {
+      width: 100%;
+      max-width: 450px;
+      background: var(--gray);
+      border-radius: 12px;
+      padding: 25px 20px;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+    }
+
+    /* === Input Area === */
+    .input-area {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+      width: 70%;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 6px;
+      outline: none;
+      font-size: 1rem;
+    }
+
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      background-color: var(--pink);
+      color: var(--white);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.3s ease;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      background-color: #ff80c1;
+    }
+
+    /* === Category Filter Dropdown === */
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 6px;
+      background-color: var(--pastel-pink);
+      color: var(--black);
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 15px;
+      cursor: pointer;
+      outline: none;
+      transition: background 0.3s ease;
+    }
+
+    select:hover {
+      background-color: #ffd1eb;
+    }
+
+    /* === Task List === */
+    ul {
+      list-style: none;
+      width: 100%;
+    }
+
+    li {
+      background: var(--black);
+      margin: 10px 0;
+      padding: 12px 14px;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      transition: transform 0.3s ease, background 0.3s ease;
+      overflow: hidden;
+    }
+
+    /* Simplified slide delete */
+    li.slid {
+      transform: translateX(-100%);
+      opacity: 0;
+      transition: transform 0.4s ease-out, opacity 0.3s ease;
+    }
+
+    /* Delete Button (pink) */
+    .delete-btn {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--pink);
+      border: none;
+      color: var(--white);
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    li.active .delete-btn {
+      opacity: 1;
+    }
+
+    li:hover {
+      background: #111;
+    }
+  </style>
+</head>
+<body>
+  <h1>Just Do It</h1>
+  <div class="container">
+    <select id="filter">
+      <option value="all">All</option>
+      <option value="work">Work</option>
+      <option value="creative">Creative</option>
+      <option value="groceries">Groceries</option>
+    </select>
+
+    <div class="input-area">
+      <input type="text" id="taskInput" placeholder="Enter a task..." />
+      <button id="addBtn">Add</button>
+    </div>
+
+    <ul id="taskList"></ul>
+  </div>
+
+  <script>
+    const addBtn = document.getElementById('addBtn');
+    const taskInput = document.getElementById('taskInput');
+    const taskList = document.getElementById('taskList');
+    const filter = document.getElementById('filter');
+
+    // Add Task
+    addBtn.addEventListener('click', addTask);
+    taskInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') addTask();
+    });
+
+    function addTask() {
+      const text = taskInput.value.trim();
+      if (!text) return;
+
+      const li = document.createElement('li');
+      li.textContent = text;
+
+      const del = document.createElement('button');
+      del.textContent = 'Delete';
+      del.classList.add('delete-btn');
+      li.appendChild(del);
+
+      // Simple slide delete
+      let startX = 0;
+      li.addEventListener('touchstart', (e) => startX = e.touches[0].clientX);
+      li.addEventListener('touchmove', (e) => {
+        const diff = e.touches[0].clientX - startX;
+        if (diff < -50) li.classList.add('active');
+      });
+      li.addEventListener('touchend', (e) => {
+        if (li.classList.contains('active')) {
+          li.classList.add('slid');
+          setTimeout(() => li.remove(), 300);
+        }
+      });
+
+      del.addEventListener('click', () => {
+        li.classList.add('slid');
+        setTimeout(() => li.remove(), 300);
+      });
+
+      taskList.appendChild(li);
+      taskInput.value = '';
+    }
+
+    // Filter tasks
+    filter.addEventListener('change', (e) => {
+      const value = e.target.value;
+      const items = taskList.querySelectorAll('li');
+      items.forEach(item => {
+        if (value === 'all' || item.textContent.toLowerCase().includes(value)) {
+          item.style.display = 'flex';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    });
+  </script>
+</body>
+</html>
